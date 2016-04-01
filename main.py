@@ -6,6 +6,10 @@ from os import environ as env
 from datetime import datetime
 import sys
 
+import matplotlib as mpl
+
+mpl.use('Agg')
+
 import matplotlib.pyplot as plt
 
 logging.basicConfig(level=logging.INFO)
