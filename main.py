@@ -21,14 +21,15 @@ keystone = dict(os_username=env['OS_USERNAME'],
 client = None
 
 
-def get_available_resource_ids(cc, metric):
+def get_available_metrics(cc):
     """
-    Get all instances Id in Ceilometer
+    Get all available metrics
     """
-    inst_list = list()
     meters_list = cc.meters.list()
-    [inst_list.append(meters.resource_id) for meters in meters_list if meters.name == metric]
-    return inst_list
+    meter_names = {}
+    for meters in meters_list:
+        meter_names[meters.name] = meter_names
+    return sorted(map(lambda x: str(x), meter_names.keys()))
 
 
 def search_samples(cc, inst_list, instance_uuid):
@@ -81,14 +82,25 @@ def print_help():
 
 if __name__ == "__main__":
 
+    import logging
+    logging.getLogger().setLevel(logging.ERROR)
+
     if len(sys.argv) < 2:
         print_help()
         sys.exit(1)
 
     instance_uuid = sys.argv[1]
 
+    required_env_vars = ['OS_AUTH_URL', 'OS_TENANT_NAME', 'OS_USERNAME', 'OS_PASSWORD', 'OS_REGION_NAME']
+
+    from ceilometerclient import client
+    client = client.get_client(2, **keystone)
+
     if len(sys.argv) < 3:
-        targeted_metric_name = "hardware.cpu.load.1min"
+        print("Please pick a metric in the following list:")
+        for metric in get_available_metrics(client):
+            print("  %s" % (metric))
+        sys.exit(0)
     else:
         targeted_metric_name = sys.argv[2]
 
@@ -97,13 +109,6 @@ if __name__ == "__main__":
     else:
         output_file = sys.argv[3]
 
-    required_env_vars = ['OS_AUTH_URL', 'OS_TENANT_NAME', 'OS_USERNAME', 'OS_PASSWORD', 'OS_REGION_NAME']
-
-    from ceilometerclient import client
-
-    client = client.get_client(2, **keystone)
-
     meters = [targeted_metric_name]
-    # instance_list = get_available_resource_ids(client, targeted_metric_name)
     samples = search_samples(client, [instance_uuid], instance_uuid)
     generate_figure(client, instance_uuid, samples, targeted_metric_name, output_file)
